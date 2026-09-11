@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#DDE2E1">
+<title>Diario</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Diario">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --smoke:#DDE2E1;
+  --paper:#F7F9F8;
+  --pine:#22312F;
+  --muted:#6B7A78;
+  --line:#C7CFCD;
+  --ember:#D7381C;
+  --amber:#E8A13A;
+  --calm:#7E9A90;
+  --radius:10px;
+  --pad:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--smoke);
+  color:var(--pine);
+  font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:16px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:96px;
+}
+button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+.wrap{max-width:620px;margin:0 auto;padding:0 var(--pad)}
+
+/* ---------- testata ---------- */
+.topbar{display:flex;align-items:center;gap:10px;padding:14px 0 4px}
+.tab{
+  background:none;border:none;padding:6px 0;color:var(--muted);
+  font-weight:500;letter-spacing:.01em;border-bottom:2px solid transparent;
+}
+.tab[aria-selected="true"]{color:var(--pine);border-bottom-color:var(--ember)}
+.topbar .spacer{flex:1}
+.icon-btn{
+  background:none;border:1px solid var(--line);border-radius:var(--radius);
+  padding:5px 10px;font-size:14px;color:var(--muted);
+}
+.icon-btn:hover{border-color:var(--pine);color:var(--pine)}
+
+/* ---------- navigazione giorno ---------- */
+.daynav{display:flex;align-items:center;gap:8px;margin-top:14px}
+.daynav button{
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+  width:38px;height:38px;line-height:1;font-size:18px;color:var(--pine);
+}
+.daynav button:disabled{opacity:.35;cursor:default}
+.daynav .label{flex:1;text-align:center;font-weight:500}
+.daynav .label span{display:block;font-size:13px;color:var(--muted);font-weight:400}
+
+/* ---------- conteggio ---------- */
+.count{margin:22px 0 4px;display:flex;align-items:baseline;gap:12px}
+.count .n{
+  font-family:'Instrument Serif',Georgia,serif;
+  font-size:76px;line-height:.8;letter-spacing:-.02em;
+}
+.count .cap{font-size:15px;color:var(--muted)}
+.tally{display:flex;flex-wrap:wrap;gap:5px;min-height:34px;margin:18px 0 10px;align-items:flex-end}
+.tally i{display:block;width:5px;height:30px;border-radius:2px;background:var(--calm)}
+.tally i.mid{background:var(--amber)}
+.tally i.high{background:var(--ember)}
+.tally .none{font-size:15px;color:var(--muted);font-style:italic;font-family:'Instrument Serif',Georgia,serif}
+.compare{font-size:14px;color:var(--muted);margin-bottom:22px}
+
+/* ---------- elenco sigarette ---------- */
+.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.row{
+  display:grid;grid-template-columns:26px 1fr auto;gap:12px;align-items:start;
+  padding:13px 0;border-bottom:1px solid var(--line);
+  background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;
+}
+.row:hover{background:rgba(255,255,255,.45)}
+.row .idx{
+  font-family:'Instrument Serif',Georgia,serif;font-size:20px;color:var(--muted);
+  line-height:1.1;text-align:right;
+}
+.row .time{font-weight:600;font-variant-numeric:tabular-nums}
+.row .meta{font-size:14px;color:var(--muted);margin-top:1px}
+.row .mood{font-size:14px;color:var(--pine);margin-top:2px}
+.urge{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
+.urge b{font-size:15px;font-variant-numeric:tabular-nums}
+.urge .bar{width:34px;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.urge .bar span{display:block;height:100%}
+.empty{padding:36px 0;text-align:center;color:var(--muted)}
+.empty p{margin:0 0 14px}
+
+/* ---------- pulsante principale ---------- */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;padding:12px var(--pad) calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--smoke) 62%,rgba(221,226,225,0));
+}
+.dock .inner{max-width:620px;margin:0 auto}
+.primary{
+  width:100%;background:var(--ember);color:#fff;border:none;border-radius:var(--radius);
+  padding:15px;font-weight:600;letter-spacing:.01em;
+}
+.primary:hover{background:#BE2F16}
+
+/* ---------- scheda di inserimento ---------- */
+.sheet-bg{
+  position:fixed;inset:0;background:rgba(34,49,47,.42);
+  display:none;align-items:flex-end;justify-content:center;z-index:20;
+}
+.sheet-bg.open{display:flex}
+.sheet{
+  background:var(--paper);width:100%;max-width:620px;max-height:92vh;overflow:auto;
+  border-radius:16px 16px 0 0;padding:20px var(--pad) calc(24px + env(safe-area-inset-bottom));
+}
+.sheet h2{
+  font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:27px;
+  margin:0 0 16px;letter-spacing:-.01em;
+}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
+.field input[type=text],.field input[type=time],.field input[type=date]{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:var(--radius);
+  background:#fff;font-family:inherit;font-size:16px;color:var(--pine);
+}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{
+  background:#fff;border:1px solid var(--line);border-radius:999px;
+  padding:5px 11px;font-size:14px;color:var(--muted);
+}
+.chip:hover{border-color:var(--pine);color:var(--pine)}
+.chip.on{background:var(--pine);border-color:var(--pine);color:#fff}
+.slider-head{display:flex;justify-content:space-between;align-items:baseline}
+.slider-head b{font-family:'Instrument Serif',Georgia,serif;font-size:28px;line-height:1}
+input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--amber)}
+.sheet-actions{display:flex;gap:10px;margin-top:22px}
+.sheet-actions .primary{flex:1}
+.ghost{
+  background:none;border:1px solid var(--line);border-radius:var(--radius);
+  padding:15px 18px;color:var(--muted);
+}
+.ghost:hover{border-color:var(--pine);color:var(--pine)}
+.danger{color:var(--ember);border-color:rgba(215,56,28,.4)}
+
+/* ---------- riepilogo ---------- */
+.panel{display:none}
+.panel.on{display:block}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:18px 0 26px}
+.stat{background:var(--paper);padding:14px}
+.stat b{display:block;font-family:'Instrument Serif',Georgia,serif;font-size:30px;line-height:1.1}
+.stat span{font-size:13px;color:var(--muted)}
+h3.sec{font-size:15px;font-weight:600;margin:26px 0 12px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:110px;border-bottom:1px solid var(--line);padding-bottom:2px}
+.bars div{flex:1;background:var(--calm);border-radius:2px 2px 0 0;min-height:2px;position:relative}
+.bars div.today{background:var(--ember)}
+.barlabels{display:flex;gap:4px;margin-top:6px}
+.barlabels span{flex:1;text-align:center;font-size:10px;color:var(--muted)}
+.hours{display:flex;align-items:flex-end;gap:2px;height:76px;border-bottom:1px solid var(--line)}
+.hours div{flex:1;background:var(--pine);opacity:.75;border-radius:1px;min-height:1px}
+.hourlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px}
+.rank{list-style:none;margin:0;padding:0}
+.rank li{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px}
+.rank li span{color:var(--muted);font-variant-numeric:tabular-nums}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 10px}
+.note{font-size:13px;color:var(--muted);margin-top:18px}
+
+/* ---------- foglio da stampare ---------- */
+.print-only{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  .topbar,.daynav,.count,.tally,.compare,.list,.dock,.sheet-bg,.panel,.empty{display:none !important}
+  .print-only{display:block}
+  .print-only h1{font-size:18px;margin:0 0 2px}
+  .print-only .sub{font-size:12px;color:#555;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th,td{border:1px solid #999;padding:5px 6px;text-align:left;vertical-align:top}
+  th{background:#eee;font-weight:600}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <button class="tab" id="tabDay" aria-selected="true">Giornata</button>
+    <button class="tab" id="tabSum" aria-selected="false">Andamento</button>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="btnPrint">Stampa</button>
+  </div>
+
+  <!-- GIORNATA -->
+  <section class="panel on" id="panelDay">
+    <div class="daynav">
+      <button id="prevDay" aria-label="Giorno precedente">‹</button>
+      <div class="label" id="dayLabel">—<span id="daySub"></span></div>
+      <button id="nextDay" aria-label="Giorno successivo">›</button>
+    </div>
+
+    <div class="count">
+      <div class="n" id="dayCount">0</div>
+      <div class="cap" id="dayCaption">sigarette</div>
+    </div>
+    <div class="tally" id="tally"></div>
+    <div class="compare" id="compare"></div>
+
+    <ul class="list" id="list"></ul>
+    <div class="empty" id="empty">
+      <p>Nessuna sigaretta segnata per questo giorno.</p>
+    </div>
+  </section>
+
+  <!-- ANDAMENTO -->
+  <section class="panel" id="panelSum">
+    <div class="stat-grid">
+      <div class="stat"><b id="sAvg">0</b><span>media al giorno, ultimi 14</span></div>
+      <div class="stat"><b id="sTot">0</b><span>totale registrate</span></div>
+      <div class="stat"><b id="sUrge">0</b><span>voglia media</span></div>
+      <div class="stat"><b id="sAuto">0</b><span>fumate con voglia sotto 4</span></div>
+    </div>
+
+    <h3 class="sec">Ultimi 14 giorni</h3>
+    <div class="bars" id="bars"></div>
+    <div class="barlabels" id="barlabels"></div>
+
+    <h3 class="sec">Ore della giornata</h3>
+    <div class="hours" id="hours"></div>
+    <div class="hourlabels"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+
+    <h3 class="sec">Circostanze più frequenti</h3>
+    <ul class="rank" id="rankCirc"></ul>
+
+    <h3 class="sec">Dove</h3>
+    <ul class="rank" id="rankDove"></ul>
+
+    <h3 class="sec">Umore</h3>
+    <ul class="rank" id="rankUmore"></ul>
+
+    <div class="tools">
+      <button class="icon-btn" id="btnCsv">Esporta CSV</button>
+      <button class="icon-btn" id="btnBackup">Salva backup</button>
+      <button class="icon-btn" id="btnRestore">Carica backup</button>
+      <input type="file" id="fileIn" accept="application/json" hidden>
+    </div>
+    <p class="note" id="storeNote"></p>
+  </section>
+</div>
+
+<div class="dock"><div class="inner">
+  <button class="primary" id="btnAdd">Registra una sigaretta</button>
+</div></div>
+
+<!-- scheda inserimento -->
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">Nuova sigaretta</h2>
+
+    <div class="field">
+      <label for="fDate">Giorno</label>
+      <input type="date" id="fDate">
+    </div>
+    <div class="field">
+      <label for="fTime">Ora</label>
+      <input type="time" id="fTime">
+    </div>
+    <div class="field">
+      <label for="fChi">Con chi ero</label>
+      <input type="text" id="fChi" placeholder="da solo, con Marta, colleghi…">
+      <div class="chips" id="cChi"></div>
+    </div>
+    <div class="field">
+      <label for="fDove">Dove</label>
+      <input type="text" id="fDove" placeholder="balcone, ufficio, auto…">
+      <div class="chips" id="cDove"></div>
+    </div>
+    <div class="field">
+      <label for="fCirc">Circostanza</label>
+      <input type="text" id="fCirc" placeholder="dopo pranzo, mentre lavoro…">
+      <div class="chips" id="cCirc"></div>
+    </div>
+    <div class="field">
+      <label for="fUmore">Umore</label>
+      <input type="text" id="fUmore" placeholder="teso, annoiato, tranquillo…">
+      <div class="chips" id="cUmore"></div>
+    </div>
+    <div class="field">
+      <div class="slider-head">
+        <label for="fVoglia" style="margin:0">Quanta voglia sentivo</label>
+        <b id="vVal">5</b>
+      </div>
+      <input type="range" id="fVoglia" min="1" max="10" step="1" value="5">
+    </div>
+
+    <div class="sheet-actions">
+      <button class="ghost" id="btnCancel">Annulla</button>
+      <button class="primary" id="btnSave">Salva</button>
+    </div>
+    <div class="sheet-actions" id="delRow" hidden>
+      <button class="ghost danger" id="btnDelete" style="flex:1">Elimina questa riga</button>
+    </div>
+  </div>
+</div>
+
+<!-- versione da stampare -->
+<div class="print-only" id="printArea"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- salvataggio locale ---------------- */
+var KEY = 'diario-sigarette-v1';
+var memory = null;
+
+var Store = {
+  async load(){
+    if (window.storage) {
+      try { var r = await window.storage.get(KEY); return r ? JSON.parse(r.value) : []; }
+      catch(e){ return []; }
+    }
+    try { var v = localStorage.getItem(KEY); return v ? JSON.parse(v) : []; }
+    catch(e){ return memory || []; }
+  },
+  async save(data){
+    if (window.storage) {
+      try { await window.storage.set(KEY, JSON.stringify(data)); return true; } catch(e){}
+    }
+    try { localStorage.setItem(KEY, JSON.stringify(data)); return true; }
+    catch(e){ memory = data; return false; }
+  }
+};
+
+/* ---------------- stato ---------------- */
+var entries = [];
+var current = todayISO();
+var editingId = null;
+
+var SUGG = {
+  chi:   ['da solo','partner','colleghi','amici','famiglia'],
+  dove:  ['casa','balcone','ufficio','auto','bar','strada'],
+  circ:  ['appena sveglio','dopo colazione','col caffè','mentre lavoro','in pausa','dopo pranzo','dopo cena','in auto','al telefono','prima di dormire'],
+  umore: ['tranquillo','teso','annoiato','stanco','ansioso','contento','arrabbiato','triste']
+};
+
+/* ---------------- utilità ---------------- */
+function todayISO(){ return toISO(new Date()); }
+function toISO(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function shiftISO(iso, days){
+  var p = iso.split('-');
+  var d = new Date(+p[0], +p[1]-1, +p[2]);
+  d.setDate(d.getDate()+days);
+  return toISO(d);
+}
+function prettyDate(iso){
+  var p = iso.split('-');
+  var d = new Date(+p[0], +p[1]-1, +p[2]);
+  var s = d.toLocaleDateString('it-IT',{weekday:'long', day:'numeric', month:'long'});
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function nowTime(){
+  var d = new Date();
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function ofDay(iso){
+  return entries.filter(function(e){ return e.date===iso; })
+                .sort(function(a,b){ return a.time.localeCompare(b.time); });
+}
+function urgeColor(v){
+  if (v>=8) return getCss('--ember');
+  if (v>=4) return getCss('--amber');
+  return getCss('--calm');
+}
+function urgeClass(v){ return v>=8 ? 'high' : (v>=4 ? 'mid' : ''); }
+function getCss(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function esc(s){
+  return String(s||'').replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  });
+}
+function el(id){ return document.getElementById(id); }
+
+/* ---------------- vista giornata ---------------- */
+function renderDay(){
+  var rows = ofDay(current);
+  el('dayLabel').firstChild.nodeValue = prettyDate(current);
+  el('daySub').textContent = current===todayISO() ? 'oggi' : '';
+  el('nextDay').disabled = current >= todayISO();
+
+  el('dayCount').textContent = rows.length;
+  el('dayCaption').textContent = rows.length===1 ? 'sigaretta' : 'sigarette';
+
+  var t = el('tally');
+  t.innerHTML = '';
+  if (!rows.length) {
+    var n = document.createElement('span');
+    n.className = 'none';
+    n.textContent = 'giornata ancora pulita';
+    t.appendChild(n);
+  } else {
+    rows.forEach(function(e){
+      var i = document.createElement('i');
+      i.className = urgeClass(e.voglia);
+      i.title = e.time;
+      t.appendChild(i);
+    });
+  }
+
+  var ieri = ofDay(shiftISO(current,-1)).length;
+  var avg = average14();
+  el('compare').textContent = 'Il giorno prima ' + ieri + '. Media degli ultimi 14 giorni ' +
+    avg.toLocaleString('it-IT',{maximumFractionDigits:1}) + '.';
+
+  var list = el('list');
+  list.innerHTML = '';
+  el('empty').style.display = rows.length ? 'none' : 'block';
+
+  rows.forEach(function(e, i){
+    var li = document.createElement('li');
+    var b = document.createElement('button');
+    b.className = 'row';
+    b.innerHTML =
+      '<div class="idx">'+(i+1)+'</div>' +
+      '<div>' +
+        '<div class="time">'+esc(e.time)+'</div>' +
+        '<div class="meta">'+esc([e.chi,e.dove,e.circ].filter(Boolean).join(', ') || 'nessun dettaglio')+'</div>' +
+        (e.umore ? '<div class="mood">'+esc(e.umore)+'</div>' : '') +
+      '</div>' +
+      '<div class="urge"><b>'+e.voglia+'</b><div class="bar"><span style="width:'+(e.voglia*10)+'%;background:'+urgeColor(e.voglia)+'"></span></div></div>';
+    b.addEventListener('click', function(){ openSheet(e.id); });
+    li.appendChild(b);
+    list.appendChild(li);
+  });
+
+  buildPrint(rows);
+}
+
+function average14(){
+  var days = {}, i, iso, tot = 0;
+  for (i=0;i<14;i++){ days[shiftISO(current,-i)] = 0; }
+  entries.forEach(function(e){ if (e.date in days) days[e.date]++; });
+  for (iso in days) tot += days[iso];
+  return tot/14;
+}
+
+/* ---------------- scheda inserimento ---------------- */
+function chipRow(containerId, inputId, values){
+  var c = el(containerId), inp = el(inputId);
+  c.innerHTML = '';
+  values.slice(0,8).forEach(function(v){
+    var b = document.createElement('button');
+    b.className = 'chip' + (inp.value.trim().toLowerCase()===v.toLowerCase() ? ' on' : '');
+    b.type = 'button';
+    b.textContent = v;
+    b.addEventListener('click', function(){
+      inp.value = (inp.value.trim().toLowerCase()===v.toLowerCase()) ? '' : v;
+      chipRow(containerId, inputId, values);
+    });
+    c.appendChild(b);
+  });
+}
+function learned(field, fallback){
+  var counts = {};
+  entries.forEach(function(e){
+    var v = (e[field]||'').trim();
+    if (v) counts[v] = (counts[v]||0)+1;
+  });
+  var used = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; });
+  fallback.forEach(function(f){
+    if (!used.some(function(u){ return u.toLowerCase()===f.toLowerCase(); })) used.push(f);
+  });
+  return used;
+}
+function refreshChips(){
+  chipRow('cChi','fChi', learned('chi', SUGG.chi));
+  chipRow('cDove','fDove', learned('dove', SUGG.dove));
+  chipRow('cCirc','fCirc', learned('circ', SUGG.circ));
+  chipRow('cUmore','fUmore', learned('umore', SUGG.umore));
+}
+function openSheet(id){
+  editingId = id || null;
+  var e = id ? entries.find(function(x){ return x.id===id; }) : null;
+  el('sheetTitle').textContent = e ? 'Modifica sigaretta' : 'Nuova sigaretta';
+  el('fDate').value  = e ? e.date  : current;
+  el('fTime').value  = e ? e.time  : nowTime();
+  el('fChi').value   = e ? e.chi   : '';
+  el('fDove').value  = e ? e.dove  : '';
+  el('fCirc').value  = e ? e.circ  : '';
+  el('fUmore').value = e ? e.umore : '';
+  el('fVoglia').value = e ? e.voglia : 5;
+  updateSlider();
+  refreshChips();
+  el('delRow').hidden = !e;
+  el('sheetBg').classList.add('open');
+}
+function closeSheet(){
+  el('sheetBg').classList.remove('open');
+  editingId = null;
+}
+function updateSlider(){
+  var v = +el('fVoglia').value;
+  el('vVal').textContent = v;
+  el('vVal').style.color = urgeColor(v);
+  el('fVoglia').style.accentColor = urgeColor(v);
+}
+async function saveEntry(){
+  var rec = {
+    id: editingId || (Date.now()+'-'+Math.random().toString(36).slice(2,7)),
+    date: el('fDate').value || current,
+    time: el('fTime').value || nowTime(),
+    chi:  el('fChi').value.trim(),
+    dove: el('fDove').value.trim(),
+    circ: el('fCirc').value.trim(),
+    umore:el('fUmore').value.trim(),
+    voglia: +el('fVoglia').value
+  };
+  if (editingId) {
+    entries = entries.map(function(e){ return e.id===editingId ? rec : e; });
+  } else {
+    entries.push(rec);
+  }
+  current = rec.date;
+  await persist();
+  closeSheet();
+  renderAll();
+}
+async function deleteEntry(){
+  if (!editingId) return;
+  if (!confirm('Elimino questa riga?')) return;
+  entries = entries.filter(function(e){ return e.id!==editingId; });
+  await persist();
+  closeSheet();
+  renderAll();
+}
+async function persist(){
+  var ok = await Store.save(entries);
+  el('storeNote').textContent = ok
+    ? 'I dati restano su questo dispositivo, in questo browser. Nessun invio online.'
+    : 'Attenzione: il browser non sta salvando i dati. Usa "Salva backup" prima di chiudere.';
+}
+
+/* ---------------- riepilogo ---------------- */
+function renderSummary(){
+  el('sTot').textContent = entries.length;
+  el('sAvg').textContent = average14().toLocaleString('it-IT',{maximumFractionDigits:1});
+
+  var u = entries.reduce(function(a,e){ return a+e.voglia; },0);
+  el('sUrge').textContent = entries.length ? (u/entries.length).toLocaleString('it-IT',{maximumFractionDigits:1}) : '0';
+  el('sAuto').textContent = entries.filter(function(e){ return e.voglia<4; }).length;
+
+  // ultimi 14 giorni
+  var days = [], i;
+  for (i=13;i>=0;i--){ days.push(shiftISO(current,-i)); }
+  var counts = days.map(function(d){ return ofDay(d).length; });
+  var max = Math.max.apply(null, counts.concat([1]));
+  var bars = el('bars'), labels = el('barlabels');
+  bars.innerHTML = ''; labels.innerHTML = '';
+  days.forEach(function(d, k){
+    var b = document.createElement('div');
+    b.style.height = Math.round((counts[k]/max)*100)+'%';
+    if (d===current) b.className = 'today';
+    b.title = d+': '+counts[k];
+    bars.appendChild(b);
+    var s = document.createElement('span');
+    s.textContent = (k%2===0) ? d.slice(8) : '';
+    labels.appendChild(s);
+  });
+
+  // distribuzione oraria
+  var hrs = new Array(24).fill(0);
+  entries.forEach(function(e){ hrs[+e.time.slice(0,2)]++; });
+  var hmax = Math.max.apply(null, hrs.concat([1]));
+  var hc = el('hours'); hc.innerHTML = '';
+  hrs.forEach(function(v,h){
+    var d = document.createElement('div');
+    d.style.height = Math.round((v/hmax)*100)+'%';
+    d.title = h+':00 — '+v;
+    hc.appendChild(d);
+  });
+
+  rank('circ','rankCirc');
+  rank('dove','rankDove');
+  rank('umore','rankUmore');
+}
+function rank(field, target){
+  var counts = {};
+  entries.forEach(function(e){
+    var v = (e[field]||'').trim();
+    if (v) counts[v] = (counts[v]||0)+1;
+  });
+  var top = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; }).slice(0,6);
+  var ul = el(target);
+  ul.innerHTML = '';
+  if (!top.length) {
+    ul.innerHTML = '<li style="color:var(--muted)">Ancora niente da mostrare<span></span></li>';
+    return;
+  }
+  top.forEach(function(k){
+    var li = document.createElement('li');
+    li.innerHTML = esc(k)+'<span>'+counts[k]+'</span>';
+    ul.appendChild(li);
+  });
+}
+
+/* ---------------- stampa ---------------- */
+function buildPrint(rows){
+  var h = '<h1>Diario delle sigarette</h1><div class="sub">'+esc(prettyDate(current))+' — totale '+rows.length+'</div>';
+  h += '<table><thead><tr><th>N.</th><th>Ora</th><th>Con chi</th><th>Dove</th><th>Circostanza</th><th>Umore</th><th>Voglia</th></tr></thead><tbody>';
+  rows.forEach(function(e,i){
+    h += '<tr><td>'+(i+1)+'</td><td>'+esc(e.time)+'</td><td>'+esc(e.chi)+'</td><td>'+esc(e.dove)+'</td><td>'+esc(e.circ)+'</td><td>'+esc(e.umore)+'</td><td>'+e.voglia+'</td></tr>';
+  });
+  var blanks = Math.max(0, 12-rows.length), k;
+  for (k=0;k<blanks;k++){
+    h += '<tr><td>'+(rows.length+k+1)+'</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+  }
+  h += '</tbody></table>';
+  el('printArea').innerHTML = h;
+}
+
+/* ---------------- esporta e importa ---------------- */
+function download(name, text, type){
+  var blob = new Blob([text], {type:type});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+function exportCsv(){
+  var head = ['Data','Ora','Con chi','Dove','Circostanza','Umore','Voglia'];
+  var rows = entries.slice().sort(function(a,b){
+    return (a.date+a.time).localeCompare(b.date+b.time);
+  });
+  var q = function(s){ return '"'+String(s==null?'':s).replace(/"/g,'""')+'"'; };
+  var csv = '\ufeff' + head.map(q).join(';') + '\r\n' +
+    rows.map(function(e){
+      return [e.date,e.time,e.chi,e.dove,e.circ,e.umore,e.voglia].map(q).join(';');
+    }).join('\r\n');
+  download('diario-sigarette.csv', csv, 'text/csv;charset=utf-8');
+}
+
+/* ---------------- avvio ---------------- */
+function renderAll(){ renderDay(); renderSummary(); }
+
+el('prevDay').addEventListener('click', function(){ current = shiftISO(current,-1); renderAll(); });
+el('nextDay').addEventListener('click', function(){
+  if (current < todayISO()) { current = shiftISO(current,1); renderAll(); }
+});
+el('btnAdd').addEventListener('click', function(){ openSheet(null); });
+el('btnCancel').addEventListener('click', closeSheet);
+el('btnSave').addEventListener('click', saveEntry);
+el('btnDelete').addEventListener('click', deleteEntry);
+el('fVoglia').addEventListener('input', updateSlider);
+el('sheetBg').addEventListener('click', function(ev){ if (ev.target===el('sheetBg')) closeSheet(); });
+document.addEventListener('keydown', function(ev){ if (ev.key==='Escape') closeSheet(); });
+['fChi','fDove','fCirc','fUmore'].forEach(function(id){
+  el(id).addEventListener('input', refreshChips);
+});
+
+el('tabDay').addEventListener('click', function(){ switchTab('day'); });
+el('tabSum').addEventListener('click', function(){ switchTab('sum'); });
+function switchTab(which){
+  var day = which==='day';
+  el('tabDay').setAttribute('aria-selected', day);
+  el('tabSum').setAttribute('aria-selected', !day);
+  el('panelDay').classList.toggle('on', day);
+  el('panelSum').classList.toggle('on', !day);
+  window.scrollTo(0,0);
+}
+
+el('btnPrint').addEventListener('click', function(){ window.print(); });
+el('btnCsv').addEventListener('click', exportCsv);
+el('btnBackup').addEventListener('click', function(){
+  download('backup-diario-'+todayISO()+'.json', JSON.stringify(entries,null,2), 'application/json');
+});
+el('btnRestore').addEventListener('click', function(){ el('fileIn').click(); });
+el('fileIn').addEventListener('change', function(ev){
+  var f = ev.target.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = async function(){
+    try {
+      var data = JSON.parse(r.result);
+      if (!Array.isArray(data)) throw new Error('formato non valido');
+      var ids = {};
+      entries.forEach(function(e){ ids[e.id]=1; });
+      data.forEach(function(e){ if (e && e.id && !ids[e.id]) entries.push(e); });
+      await persist();
+      renderAll();
+      alert('Backup caricato. Ora sono '+entries.length+' righe.');
+    } catch(err){
+      alert('Il file non è un backup valido di questa app.');
+    }
+    ev.target.value = '';
+  };
+  r.readAsText(f);
+});
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+
+(async function init(){
+  entries = await Store.load();
+  el('storeNote').textContent = 'I dati restano su questo dispositivo, in questo browser. Nessun invio online.';
+  renderAll();
+})();
+
+})();
+</script>
+</body>
+</html>
