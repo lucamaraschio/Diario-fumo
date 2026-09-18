@@ -175,18 +175,28 @@ h3.sec{font-size:15px;font-weight:600;margin:26px 0 12px}
 .rank li span{color:var(--muted);font-variant-numeric:tabular-nums}
 .tools{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 10px}
 .note{font-size:13px;color:var(--muted);margin-top:18px}
+[hidden]{display:none !important}
+.range-row{display:flex;gap:10px;margin-top:12px}
+.range-row .field{flex:1;margin-bottom:0}
+.bars div.void{background:var(--line)}
 
-/* ---------- foglio da stampare ---------- */
+/* ---------- fogli da stampare ---------- */
 .print-only{display:none}
 @media print{
-  body{background:#fff;padding:0}
-  .topbar,.daynav,.count,.tally,.compare,.list,.dock,.sheet-bg,.panel,.empty{display:none !important}
+  @page{size:A4;margin:14mm}
+  body{background:#fff;padding:0;color:#000;font-size:11px}
+  .wrap,.dock,.sheet-bg{display:none !important}
   .print-only{display:block}
-  .print-only h1{font-size:18px;margin:0 0 2px}
-  .print-only .sub{font-size:12px;color:#555;margin-bottom:14px}
-  table{width:100%;border-collapse:collapse;font-size:11px}
-  th,td{border:1px solid #999;padding:5px 6px;text-align:left;vertical-align:top}
-  th{background:#eee;font-weight:600}
+  .sheet-page{page-break-after:always;break-after:page}
+  .sheet-page:last-child{page-break-after:auto;break-after:auto}
+  .sheet-page .kicker{font-size:10px;letter-spacing:.04em;color:#666;margin:0 0 3px}
+  .sheet-page h1{font-size:19px;margin:0 0 3px;font-weight:600}
+  .sheet-page .sub{font-size:11px;color:#444;margin-bottom:12px}
+  .print-only table{width:100%;border-collapse:collapse;font-size:11px}
+  .print-only th,.print-only td{border:1px solid #999;padding:5px 6px;text-align:left;vertical-align:top}
+  .print-only th{background:#eee;font-weight:600}
+  .print-only td.num,.print-only th.num{text-align:center;width:34px}
+  .print-only .firma{margin-top:20px;font-size:10px;color:#666}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
 </style>
@@ -198,7 +208,7 @@ h3.sec{font-size:15px;font-weight:600;margin:26px 0 12px}
     <button class="tab" id="tabDay" aria-selected="true">Giornata</button>
     <button class="tab" id="tabSum" aria-selected="false">Andamento</button>
     <div class="spacer"></div>
-    <button class="icon-btn" id="btnPrint">Stampa</button>
+    <button class="icon-btn" id="btnPrint">Esporta</button>
   </div>
 
   <!-- GIORNATA -->
@@ -224,14 +234,24 @@ h3.sec{font-size:15px;font-weight:600;margin:26px 0 12px}
 
   <!-- ANDAMENTO -->
   <section class="panel" id="panelSum">
+    <div class="field" style="margin:18px 0 0">
+      <label>Periodo osservato</label>
+      <div class="chips" id="cVista"></div>
+    </div>
+    <div class="range-row" id="vistaRange" hidden>
+      <div class="field"><label for="vDa">Dal</label><input type="date" id="vDa"></div>
+      <div class="field"><label for="vA">Al</label><input type="date" id="vA"></div>
+    </div>
+    <p class="note" id="vistaInfo" style="margin:10px 0 0"></p>
+
     <div class="stat-grid">
-      <div class="stat"><b id="sAvg">0</b><span>media al giorno, ultimi 14</span></div>
-      <div class="stat"><b id="sTot">0</b><span>totale registrate</span></div>
+      <div class="stat"><b id="sAvg">0</b><span id="lAvg">media al giorno</span></div>
+      <div class="stat"><b id="sTot">0</b><span>sigarette nel periodo</span></div>
       <div class="stat"><b id="sUrge">0</b><span>voglia media</span></div>
       <div class="stat"><b id="sAuto">0</b><span>fumate con voglia sotto 4</span></div>
     </div>
 
-    <h3 class="sec">Ultimi 14 giorni</h3>
+    <h3 class="sec" id="hBars">Giorno per giorno</h3>
     <div class="bars" id="bars"></div>
     <div class="barlabels" id="barlabels"></div>
 
@@ -249,7 +269,7 @@ h3.sec{font-size:15px;font-weight:600;margin:26px 0 12px}
     <ul class="rank" id="rankUmore"></ul>
 
     <div class="tools">
-      <button class="icon-btn" id="btnCsv">Esporta CSV</button>
+      <button class="icon-btn" id="btnCsv">Esporta o stampa</button>
       <button class="icon-btn" id="btnBackup">Salva backup</button>
       <button class="icon-btn" id="btnRestore">Carica backup</button>
       <input type="file" id="fileIn" accept="application/json" hidden>
@@ -310,6 +330,40 @@ h3.sec{font-size:15px;font-weight:600;margin:26px 0 12px}
     <div class="sheet-actions" id="delRow" hidden>
       <button class="ghost danger" id="btnDelete" style="flex:1">Elimina questa riga</button>
     </div>
+  </div>
+</div>
+
+<!-- scelta del periodo da esportare -->
+<div class="sheet-bg" id="expBg">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="expTitle">
+    <h2 id="expTitle">Esporta il diario</h2>
+
+    <div class="field">
+      <label>Periodo</label>
+      <div class="chips" id="cPeriodo"></div>
+    </div>
+
+    <div id="customRange" hidden>
+      <div class="field">
+        <label for="fDa">Dal giorno</label>
+        <input type="date" id="fDa">
+      </div>
+      <div class="field">
+        <label for="fA">Al giorno</label>
+        <input type="date" id="fA">
+      </div>
+    </div>
+
+    <p class="note" id="expInfo"></p>
+
+    <div class="sheet-actions">
+      <button class="ghost" id="expClose">Chiudi</button>
+      <button class="primary" id="expPdf">Stampa o salva in PDF</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="ghost" id="expCsvRange" style="flex:1">Esporta questo periodo in CSV</button>
+    </div>
+    <p class="note">Il PDF si ottiene dalla finestra di stampa scegliendo Salva come PDF. Ogni giorno occupa una pagina.</p>
   </div>
 </div>
 
@@ -444,8 +498,6 @@ function renderDay(){
     li.appendChild(b);
     list.appendChild(li);
   });
-
-  buildPrint(rows);
 }
 
 function average14(){
@@ -553,51 +605,127 @@ async function persist(){
 }
 
 /* ---------------- riepilogo ---------------- */
+var VISTE = [
+  {id:'7',      label:'7 giorni'},
+  {id:'30',     label:'30 giorni'},
+  {id:'90',     label:'90 giorni'},
+  {id:'mese',   label:'Mese in corso'},
+  {id:'custom', label:'Dal… al…'},
+  {id:'tutti',  label:'Tutti'}
+];
+var vista = '30';
+
+function vistaDates(){
+  return rangeDates(vista, el('vDa').value, el('vA').value);
+}
+function renderViste(){
+  var c = el('cVista');
+  c.innerHTML = '';
+  VISTE.forEach(function(p){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (vista===p.id ? ' on' : '');
+    b.textContent = p.label;
+    b.addEventListener('click', function(){
+      vista = p.id;
+      el('vistaRange').hidden = (vista !== 'custom');
+      renderViste();
+      renderSummary();
+    });
+    c.appendChild(b);
+  });
+}
+
 function renderSummary(){
-  el('sTot').textContent = entries.length;
-  el('sAvg').textContent = average14().toLocaleString('it-IT',{maximumFractionDigits:1});
+  var days = vistaDates();
+  var info = el('vistaInfo');
 
-  var u = entries.reduce(function(a,e){ return a+e.voglia; },0);
-  el('sUrge').textContent = entries.length ? (u/entries.length).toLocaleString('it-IT',{maximumFractionDigits:1}) : '0';
-  el('sAuto').textContent = entries.filter(function(e){ return e.voglia<4; }).length;
+  if (!days.length) {
+    info.textContent = vista==='custom'
+      ? 'Scegli le due date per vedere i dati.'
+      : 'Non c\'è ancora nessuna registrazione.';
+    ['sAvg','sTot','sUrge','sAuto'].forEach(function(k){ el(k).textContent = '0'; });
+    el('bars').innerHTML = ''; el('barlabels').innerHTML = ''; el('hours').innerHTML = '';
+    ['rankCirc','rankDove','rankUmore'].forEach(function(k){ el(k).innerHTML = ''; });
+    return;
+  }
 
-  // ultimi 14 giorni
-  var days = [], i;
-  for (i=13;i>=0;i--){ days.push(shiftISO(current,-i)); }
-  var counts = days.map(function(d){ return ofDay(d).length; });
-  var max = Math.max.apply(null, counts.concat([1]));
+  var set = {};
+  days.forEach(function(d){ set[d] = 1; });
+  var ent = entries.filter(function(e){ return set[e.date]; });
+
+  info.textContent = 'Dal ' + prettyDate(days[0]) + ' al ' + prettyDate(days[days.length-1]) +
+    ', ' + days.length + (days.length===1 ? ' giorno.' : ' giorni.');
+
+  var tot = ent.length;
+  el('sTot').textContent = tot;
+  el('sAvg').textContent = (tot/days.length).toLocaleString('it-IT',{maximumFractionDigits:1});
+  el('lAvg').textContent = 'media al giorno';
+  el('sUrge').textContent = tot
+    ? (ent.reduce(function(a,e){ return a+e.voglia; },0)/tot).toLocaleString('it-IT',{maximumFractionDigits:1})
+    : '0';
+  el('sAuto').textContent = ent.filter(function(e){ return e.voglia<4; }).length;
+
+  /* barre: un giorno ciascuna, oppure una settimana se il periodo è lungo */
+  var perSettimana = days.length > 35;
+  var gruppi = [];
+  if (perSettimana) {
+    for (var i=0;i<days.length;i+=7){
+      var blocco = days.slice(i,i+7);
+      gruppi.push({
+        key: blocco[0],
+        n: blocco.reduce(function(a,d){ return a + ofDay(d).length; }, 0),
+        label: blocco[0].slice(8)+'/'+blocco[0].slice(5,7),
+        titolo: 'Settimana dal '+prettyDate(blocco[0]),
+        oggi: blocco.indexOf(current) > -1
+      });
+    }
+  } else {
+    gruppi = days.map(function(d){
+      return { key:d, n:ofDay(d).length, label:d.slice(8), titolo:prettyDate(d), oggi:(d===current) };
+    });
+  }
+  el('hBars').textContent = perSettimana ? 'Settimana per settimana' : 'Giorno per giorno';
+
+  var max = Math.max.apply(null, gruppi.map(function(g){ return g.n; }).concat([1]));
   var bars = el('bars'), labels = el('barlabels');
   bars.innerHTML = ''; labels.innerHTML = '';
-  days.forEach(function(d, k){
+  var gap = gruppi.length > 24 ? '2px' : '4px';
+  bars.style.gap = gap; labels.style.gap = gap;
+  var ogni = Math.ceil(gruppi.length/7);
+
+  gruppi.forEach(function(g, k){
     var b = document.createElement('div');
-    b.style.height = Math.round((counts[k]/max)*100)+'%';
-    if (d===current) b.className = 'today';
-    b.title = d+': '+counts[k];
+    b.style.height = Math.round((g.n/max)*100)+'%';
+    if (g.oggi) b.className = 'today';
+    else if (!g.n) b.className = 'void';
+    b.title = g.titolo + ': ' + g.n;
     bars.appendChild(b);
     var s = document.createElement('span');
-    s.textContent = (k%2===0) ? d.slice(8) : '';
+    s.textContent = (k % ogni === 0) ? g.label : '';
     labels.appendChild(s);
   });
 
-  // distribuzione oraria
+  /* distribuzione oraria */
   var hrs = new Array(24).fill(0);
-  entries.forEach(function(e){ hrs[+e.time.slice(0,2)]++; });
+  ent.forEach(function(e){ hrs[+e.time.slice(0,2)]++; });
   var hmax = Math.max.apply(null, hrs.concat([1]));
   var hc = el('hours'); hc.innerHTML = '';
   hrs.forEach(function(v,h){
     var d = document.createElement('div');
     d.style.height = Math.round((v/hmax)*100)+'%';
-    d.title = h+':00 — '+v;
+    d.title = String(h).padStart(2,'0')+':00 — '+v;
     hc.appendChild(d);
   });
 
-  rank('circ','rankCirc');
-  rank('dove','rankDove');
-  rank('umore','rankUmore');
+  rank(ent,'circ','rankCirc');
+  rank(ent,'dove','rankDove');
+  rank(ent,'umore','rankUmore');
 }
-function rank(field, target){
+
+function rank(ent, field, target){
   var counts = {};
-  entries.forEach(function(e){
+  ent.forEach(function(e){
     var v = (e[field]||'').trim();
     if (v) counts[v] = (counts[v]||0)+1;
   });
@@ -605,7 +733,7 @@ function rank(field, target){
   var ul = el(target);
   ul.innerHTML = '';
   if (!top.length) {
-    ul.innerHTML = '<li style="color:var(--muted)">Ancora niente da mostrare<span></span></li>';
+    ul.innerHTML = '<li style="color:var(--muted)">Niente in questo periodo<span></span></li>';
     return;
   }
   top.forEach(function(k){
@@ -615,19 +743,134 @@ function rank(field, target){
   });
 }
 
-/* ---------------- stampa ---------------- */
-function buildPrint(rows){
-  var h = '<h1>Diario delle sigarette</h1><div class="sub">'+esc(prettyDate(current))+' — totale '+rows.length+'</div>';
-  h += '<table><thead><tr><th>N.</th><th>Ora</th><th>Con chi</th><th>Dove</th><th>Circostanza</th><th>Umore</th><th>Voglia</th></tr></thead><tbody>';
-  rows.forEach(function(e,i){
-    h += '<tr><td>'+(i+1)+'</td><td>'+esc(e.time)+'</td><td>'+esc(e.chi)+'</td><td>'+esc(e.dove)+'</td><td>'+esc(e.circ)+'</td><td>'+esc(e.umore)+'</td><td>'+e.voglia+'</td></tr>';
-  });
-  var blanks = Math.max(0, 12-rows.length), k;
-  for (k=0;k<blanks;k++){
-    h += '<tr><td>'+(rows.length+k+1)+'</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+/* ---------------- periodo da esportare ---------------- */
+var PERIODI = [
+  {id:'giorno',  label:'Giorno visualizzato'},
+  {id:'7',       label:'Ultimi 7 giorni'},
+  {id:'30',      label:'Ultimi 30 giorni'},
+  {id:'mese',    label:'Mese in corso'},
+  {id:'custom',  label:'Dal… al…'},
+  {id:'tutti',   label:'Tutti'}
+];
+var periodo = '7';
+
+function rangeDates(p, da, a){
+  var out = [], i, iso;
+  if (p === 'giorno') return [current];
+
+  if (p === '7' || p === '30' || p === '90') {
+    var n = +p;
+    for (i=n-1;i>=0;i--) out.push(shiftISO(current,-i));
+  } else if (p === 'mese') {
+    var q = current.split('-');
+    var last = new Date(+q[0], +q[1], 0).getDate();
+    for (i=1;i<=last;i++) out.push(q[0]+'-'+q[1]+'-'+String(i).padStart(2,'0'));
+  } else if (p === 'custom') {
+    if (!da || !a) return [];
+    if (da > a) { var t = da; da = a; a = t; }
+    iso = da;
+    var guard = 0;
+    while (iso <= a && guard++ < 1500) { out.push(iso); iso = shiftISO(iso,1); }
+  } else { // tutti
+    if (!entries.length) return [];
+    var all = entries.map(function(e){ return e.date; }).sort();
+    iso = all[0];
+    var fine = all[all.length-1], g = 0;
+    while (iso <= fine && g++ < 4000) { out.push(iso); iso = shiftISO(iso,1); }
   }
+  return out;
+}
+function datesInRange(){
+  return rangeDates(periodo, el('fDa').value, el('fA').value);
+}
+function daysWithData(){
+  var d = datesInRange().filter(function(iso){ return ofDay(iso).length > 0; });
+  if (!d.length && periodo === 'giorno') return [current]; // foglio bianco da compilare a mano
+  return d;
+}
+function renderPeriodi(){
+  var c = el('cPeriodo');
+  c.innerHTML = '';
+  PERIODI.forEach(function(p){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (periodo===p.id ? ' on' : '');
+    b.textContent = p.label;
+    b.addEventListener('click', function(){
+      periodo = p.id;
+      el('customRange').hidden = (periodo !== 'custom');
+      renderPeriodi();
+    });
+    c.appendChild(b);
+  });
+  var d = daysWithData();
+  var tot = d.reduce(function(a,iso){ return a + ofDay(iso).length; }, 0);
+  el('expInfo').textContent = d.length
+    ? d.length + (d.length===1 ? ' giorno, ' : ' giorni, ') + tot + (tot===1 ? ' sigaretta.' : ' sigarette.')
+    : 'In questo periodo non c\'è nessuna registrazione.';
+}
+function openExport(){
+  if (!el('fDa').value) {
+    el('fDa').value = shiftISO(current,-6);
+    el('fA').value = current;
+  }
+  el('customRange').hidden = (periodo !== 'custom');
+  renderPeriodi();
+  el('expBg').classList.add('open');
+}
+
+/* ---------------- fogli da stampare ---------------- */
+function dayPage(iso){
+  var rows = ofDay(iso);
+  var med = rows.length
+    ? (rows.reduce(function(a,e){ return a+e.voglia; },0)/rows.length).toLocaleString('it-IT',{maximumFractionDigits:1})
+    : '—';
+
+  var h = '<section class="sheet-page">';
+  h += '<p class="kicker">Diario delle sigarette</p>';
+  h += '<h1>'+esc(prettyDate(iso))+' '+iso.slice(0,4)+'</h1>';
+  h += '<div class="sub">Totale della giornata: '+rows.length+'. Voglia media: '+med+'.</div>';
+  h += '<table><thead><tr><th class="num">N.</th><th>Ora</th><th>Con chi ero</th><th>Dove</th><th>Circostanza</th><th>Umore</th><th class="num">Voglia</th></tr></thead><tbody>';
+  rows.forEach(function(e,i){
+    h += '<tr><td class="num">'+(i+1)+'</td><td>'+esc(e.time)+'</td><td>'+esc(e.chi)+'</td><td>'+esc(e.dove)+'</td><td>'+esc(e.circ)+'</td><td>'+esc(e.umore)+'</td><td class="num">'+e.voglia+'</td></tr>';
+  });
+  var vuote = rows.length ? 0 : 14, k;
+  for (k=0;k<vuote;k++){
+    h += '<tr><td class="num">'+(k+1)+'</td><td></td><td></td><td></td><td></td><td></td><td class="num"></td></tr>';
+  }
+  h += '</tbody></table></section>';
+  return h;
+}
+function summaryPage(days){
+  var tot = days.reduce(function(a,iso){ return a + ofDay(iso).length; }, 0);
+  var media = (tot/days.length).toLocaleString('it-IT',{maximumFractionDigits:1});
+  var h = '<section class="sheet-page">';
+  h += '<p class="kicker">Diario delle sigarette</p>';
+  h += '<h1>Riepilogo del periodo</h1>';
+  h += '<div class="sub">Dal '+esc(prettyDate(days[0]))+' al '+esc(prettyDate(days[days.length-1]))+
+       '. Totale '+tot+' sigarette su '+days.length+' giorni, media '+media+' al giorno.</div>';
+  h += '<table><thead><tr><th>Giorno</th><th class="num">Sigarette</th><th class="num">Voglia media</th><th>Circostanza più frequente</th></tr></thead><tbody>';
+  days.forEach(function(iso){
+    var rows = ofDay(iso);
+    var med = (rows.reduce(function(a,e){ return a+e.voglia; },0)/rows.length).toLocaleString('it-IT',{maximumFractionDigits:1});
+    var c = {};
+    rows.forEach(function(e){ var v=(e.circ||'').trim(); if(v) c[v]=(c[v]||0)+1; });
+    var top = Object.keys(c).sort(function(a,b){ return c[b]-c[a]; })[0] || '';
+    h += '<tr><td>'+esc(prettyDate(iso))+'</td><td class="num">'+rows.length+'</td><td class="num">'+med+'</td><td>'+esc(top)+'</td></tr>';
+  });
   h += '</tbody></table>';
+  h += '<p class="firma">Stampato il '+esc(prettyDate(todayISO()))+'.</p>';
+  h += '</section>';
+  return h;
+}
+function stampaPeriodo(){
+  var days = daysWithData();
+  if (!days.length) { alert('In questo periodo non c\'è niente da stampare.'); return; }
+  var h = (days.length > 1 ? summaryPage(days) : '');
+  days.forEach(function(iso){ h += dayPage(iso); });
   el('printArea').innerHTML = h;
+  el('expBg').classList.remove('open');
+  setTimeout(function(){ window.print(); }, 120);
 }
 
 /* ---------------- esporta e importa ---------------- */
@@ -640,17 +883,23 @@ function download(name, text, type){
   a.click();
   setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
-function exportCsv(){
+function exportCsv(days){
+  var set = null, nome = 'diario-sigarette-completo.csv';
+  if (days) {
+    set = {};
+    days.forEach(function(d){ set[d] = 1; });
+    nome = 'diario-' + days[0] + '_' + days[days.length-1] + '.csv';
+  }
   var head = ['Data','Ora','Con chi','Dove','Circostanza','Umore','Voglia'];
-  var rows = entries.slice().sort(function(a,b){
-    return (a.date+a.time).localeCompare(b.date+b.time);
-  });
+  var rows = entries.filter(function(e){ return !set || set[e.date]; })
+    .sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
+  if (!rows.length) { alert('In questo periodo non c\'è niente da esportare.'); return; }
   var q = function(s){ return '"'+String(s==null?'':s).replace(/"/g,'""')+'"'; };
   var csv = '\ufeff' + head.map(q).join(';') + '\r\n' +
     rows.map(function(e){
       return [e.date,e.time,e.chi,e.dove,e.circ,e.umore,e.voglia].map(q).join(';');
     }).join('\r\n');
-  download('diario-sigarette.csv', csv, 'text/csv;charset=utf-8');
+  download(nome, csv, 'text/csv;charset=utf-8');
 }
 
 /* ---------------- avvio ---------------- */
@@ -666,7 +915,9 @@ el('btnSave').addEventListener('click', saveEntry);
 el('btnDelete').addEventListener('click', deleteEntry);
 el('fVoglia').addEventListener('input', updateSlider);
 el('sheetBg').addEventListener('click', function(ev){ if (ev.target===el('sheetBg')) closeSheet(); });
-document.addEventListener('keydown', function(ev){ if (ev.key==='Escape') closeSheet(); });
+document.addEventListener('keydown', function(ev){
+  if (ev.key==='Escape') { closeSheet(); el('expBg').classList.remove('open'); }
+});
 ['fChi','fDove','fCirc','fUmore'].forEach(function(id){
   el(id).addEventListener('input', refreshChips);
 });
@@ -682,8 +933,21 @@ function switchTab(which){
   window.scrollTo(0,0);
 }
 
-el('btnPrint').addEventListener('click', function(){ window.print(); });
-el('btnCsv').addEventListener('click', exportCsv);
+el('btnPrint').addEventListener('click', openExport);
+el('btnCsv').addEventListener('click', openExport);
+el('expClose').addEventListener('click', function(){ el('expBg').classList.remove('open'); });
+el('expPdf').addEventListener('click', stampaPeriodo);
+el('expCsvRange').addEventListener('click', function(){
+  var d = daysWithData();
+  if (!d.length) { alert('In questo periodo non c\'è niente da esportare.'); return; }
+  exportCsv(d);
+  el('expBg').classList.remove('open');
+});
+el('expBg').addEventListener('click', function(ev){
+  if (ev.target === el('expBg')) el('expBg').classList.remove('open');
+});
+el('fDa').addEventListener('change', renderPeriodi);
+el('fA').addEventListener('change', renderPeriodi);
 el('btnBackup').addEventListener('click', function(){
   download('backup-diario-'+todayISO()+'.json', JSON.stringify(entries,null,2), 'application/json');
 });
@@ -710,6 +974,9 @@ el('fileIn').addEventListener('change', function(ev){
   r.readAsText(f);
 });
 
+el('vDa').addEventListener('change', renderSummary);
+el('vA').addEventListener('change', renderSummary);
+
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').catch(function(){});
@@ -718,6 +985,9 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 
 (async function init(){
   entries = await Store.load();
+  el('vDa').value = shiftISO(current,-29);
+  el('vA').value = current;
+  renderViste();
   el('storeNote').textContent = 'I dati restano su questo dispositivo, in questo browser. Nessun invio online.';
   renderAll();
 })();

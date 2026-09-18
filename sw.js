@@ -1,6 +1,6 @@
 /* Service worker del Diario.
    Cambia CACHE a ogni aggiornamento dei file per forzare il refresh. */
-var CACHE = 'diario-v1';
+var CACHE = 'diario-v3';
 
 var SHELL = [
   './',
